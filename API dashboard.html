@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Data Charts</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* General Reset */
+    body, h1, canvas {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    /* Body and Page Layout */
+    body {
+      background-color: #f4f4f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    /* Main Title */
+    h1 {
+      font-size: 2rem;
+      color: #333;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    /* Chart Container */
+    .chart-container {
+      width: 80%;
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Individual Chart Canvas */
+    canvas {
+      width: 100% !important;
+      height: 400px !important;
+      margin-bottom: 40px;
+    }
+
+    /* Responsive Design */
+    @media screen and (max-width: 768px) {
+      .chart-container {
+        width: 95%;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+    }
+
+    /* Styling the Chart Labels */
+    .chart-container canvas {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>API Data Charts</h1>
+  
+  <!-- Chart Containers -->
+  <div class="chart-container">
+    <canvas id="pm25Chart"></canvas>
+    <canvas id="pm10Chart"></canvas>
+    <canvas id="ozoneChart"></canvas>
+    <canvas id="humidityChart"></canvas>
+    <canvas id="temperatureChart"></canvas>
+    <canvas id="coChart"></canvas>
+  </div>
+
+  <script>
+    // API URL
+    const apiUrl = 'https://api.thingspeak.com/channels/1596152/feeds.json?results=50';
+
+    // Function to fetch and process data
+    function fetchData() {
+      fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+          const feeds = data.feeds; // Extracting the feeds array from the response
+          
+          // Prepare data arrays for each field
+          const times = feeds.map(feed => feed.created_at);
+          const pm25Data = feeds.map(feed => parseFloat(feed.field1) || null); // Use null for missing values
+          const pm10Data = feeds.map(feed => parseFloat(feed.field2) || null);
+          const ozoneData = feeds.map(feed => parseInt(feed.field3) || null);
+          const humidityData = feeds.map(feed => parseFloat(feed.field4) || null);
+          const temperatureData = feeds.map(feed => parseFloat(feed.field5) || null);
+          const coData = feeds.map(feed => parseFloat(feed.field6) || null);
+          
+          // Chart configurations
+          createChart('pm25Chart', 'PM2.5', times, pm25Data);
+          createChart('pm10Chart', 'PM10', times, pm10Data);
+          createChart('ozoneChart', 'Ozone', times, ozoneData);
+          createChart('humidityChart', 'Humidity', times, humidityData);
+          createChart('temperatureChart', 'Temperature', times, temperatureData);
+          createChart('coChart', 'CO', times, coData);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+    }
+
+    // Function to create a chart
+    function createChart(chartId, label, labels, data) {
+      const ctx = document.getElementById(chartId).getContext('2d');
+      new Chart(ctx, {
+        type: 'line', // Line chart type
+        data: {
+          labels: labels, // X-axis: Time
+          datasets: [{
+            label: label, // Label for the dataset
+            data: data, // Y-axis: Field value
+            borderColor: 'rgba(75, 192, 192, 1)', // Line color
+            backgroundColor: 'rgba(75, 192, 192, 0.2)', // Fill color
+            fill: true,
+            tension: 0.1, // Smoothness of the line
+            spanGaps: true // Ensures that breaks in data (null values) are connected
+          }]
+        },
+        options: {
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Time'
+              },
+              ticks: {
+                autoSkip: true,
+                maxTicksLimit: 10
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: label
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Fetch and render data when the page loads
+    window.onload = fetchData;
+  </script>
+</body>
+</html>
